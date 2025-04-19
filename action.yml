@@ -16,10 +16,6 @@ inputs:
     description: 'Working directory where commands will be executed'
     required: false
     default: '.'
-  entrypoint:
-    description: 'Override the default entrypoint of the container image'
-    required: false
-    default: ''
   podman-args:
     description: 'Additional arguments to pass to podman run command'
     required: false
