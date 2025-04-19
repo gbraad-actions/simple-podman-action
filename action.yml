@@ -1,0 +1,59 @@
+name: 'Simple Podman Action'
+description: 'Run commands using `/bin/bash` in a container using Podman'
+
+inputs:
+  image:
+    description: 'Container image to use (defaulting to Fedora)'
+    required: false
+    default: 'fedora:latest'
+  run:
+    description: 'Shell command to execute in the container'
+    required: false
+  script-file:
+    description: 'Path to a shell script to execute in the Fedora container (takes precedence over shell-command)'
+    required: false
+  working-directory:
+    description: 'Working directory where commands will be executed'
+    required: false
+    default: '.'
+  entrypoint:
+    description: 'Override the default entrypoint of the container image'
+    required: false
+    default: ''
+  podman-args:
+    description: 'Additional arguments to pass to podman run command'
+    required: false
+outputs:
+  stdout:
+    description: 'Standard output of the command'
+  exit-code:
+    description: 'Exit code of the command'
+runs:
+  using: 'composite'
+  steps:
+    - name: Prepare command with dnf-packages
+      id: prepare
+      shell: bash
+      run: |
+        TEMP_SCRIPT="/tmp/run_script.sh"
+        echo "#!/bin/bash" > $TEMP_SCRIPT
+        echo "set -e" >> $TEMP_SCRIPT
+
+        # Add script-file or run command
+        if [ ! -z "${{ inputs.script-file }}" ]; then
+          echo "bash '${{ inputs.script-file }}'" >> $TEMP_SCRIPT
+        elif [ ! -z "${{ inputs.run }}" ]; then
+          echo "bash -c '${{ inputs.run }}'" >> $TEMP_SCRIPT
+        fi
+
+        chmod +x $TEMP_SCRIPT
+    - name: Use Podman Action
+      uses: gbraad-actions/podman-action@main
+      with:
+        image: ${{ inputs.image }}
+        run: /tmp/run_script.sh
+        working-directory: ${{ inputs.working-directory }}
+        entrypoint: /bin/bash
+        podman-args: |
+          -v "/tmp/run_script.sh:/tmp/run_script.sh:ro"
+          ${{ inputs.podman-args }}
